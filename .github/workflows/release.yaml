@@ -63,16 +63,16 @@ jobs:
           fi
 
       - name: Copy spec file
-        run: cp rpm/pfcli.spec ~/rpmbuild/SPECS/
+        run: cp rpm/kubee.spec ~/rpmbuild/SPECS/
 
       - name: Build RPM
         run: |
           if [ "${{ matrix.os.dist }}" == "el7" ]; then
             # 编译为 el7 包
-            rpmbuild --define "_version ${{ steps.version.outputs.version }}" --define "dist .el7" -bb ~/rpmbuild/SPECS/pfcli.spec
+            rpmbuild --define "_version ${{ steps.version.outputs.version }}" --define "dist .el7" -bb ~/rpmbuild/SPECS/kubee.spec
           else
             # 使用默认 dist
-            rpmbuild --define "_version ${{ steps.version.outputs.version }}" -bb ~/rpmbuild/SPECS/pfcli.spec
+            rpmbuild --define "_version ${{ steps.version.outputs.version }}" -bb ~/rpmbuild/SPECS/kubee.spec
           fi
 
       - name: Copy RPM packages
