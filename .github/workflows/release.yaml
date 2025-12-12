@@ -1,0 +1,109 @@
+name: Release package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-rpm:
+    name: Build RPM packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - { name: rockylinux, version: "9", dist: el9 }
+          - { name: almalinux, version: "8", dist: el7 }  # 用 alma8 编译 el7
+    container:
+      image: ${{ matrix.os.name }}:${{ matrix.os.version }}
+    steps:
+      # 所有系统使用 checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag or use default
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Building version $VERSION from tag"
+          fi
+
+      - name: Install build tools
+        run: |
+          if [ "${{ matrix.os.name }}" == "almalinux" ] && [ "${{ matrix.os.version }}" == "8" ]; then
+            # AlmaLinux 8 (编译 el7)
+            dnf install -y epel-release
+            dnf install -y git rpm-build rpmdevtools make gcc shc
+          else
+            # Rocky Linux 9
+            dnf install -y git rpm-build rpmdevtools make gcc
+            # 从 Fedora EPEL 下载 shc
+            curl -L -O http://download.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/s/shc-4.0.3-11.el9.x86_64.rpm
+            rpm -ivh shc-4.0.3-11.el9.x86_64.rpm
+          fi
+
+      - name: Setup rpmbuild directories
+        run: mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+      - name: Copy source files
+        run: |
+          cp kubee.sh ~/rpmbuild/SOURCES/
+          cp kubee-aliases.sh ~/rpmbuild/SOURCES/
+          cp README.md ~/rpmbuild/SOURCES/
+          if [ ! -f LICENSE ]; then
+            echo "MIT License" > ~/rpmbuild/SOURCES/LICENSE
+          else
+            cp LICENSE ~/rpmbuild/SOURCES/
+          fi
+
+      - name: Copy spec file
+        run: cp rpm/pfcli.spec ~/rpmbuild/SPECS/
+
+      - name: Build RPM
+        run: |
+          if [ "${{ matrix.os.dist }}" == "el7" ]; then
+            # 编译为 el7 包
+            rpmbuild --define "_version ${{ steps.version.outputs.version }}" --define "dist .el7" -bb ~/rpmbuild/SPECS/pfcli.spec
+          else
+            # 使用默认 dist
+            rpmbuild --define "_version ${{ steps.version.outputs.version }}" -bb ~/rpmbuild/SPECS/pfcli.spec
+          fi
+
+      - name: Copy RPM packages
+        run: |
+          mkdir -p dist/rpm
+          cp ~/rpmbuild/RPMS/*/*.rpm dist/rpm/
+
+      - name: Upload RPM packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-${{ matrix.os.dist }}
+          path: dist/rpm/*.rpm
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-rpm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/**/*.rpm
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
