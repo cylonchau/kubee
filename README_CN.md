@@ -1,4 +1,4 @@
-# kubee — 简单的k8s多集群管理工具
+# kubee — 简单的k8s多集群命令行工具
 
 ---
 中文 ｜ [English](README.md)
