@@ -249,6 +249,10 @@ case "${1:-}" in
     shift
     run_helm "$@"
     ;;
+  "")
+    # No arguments provided, show help
+    print_usage
+    ;;
   *)
     run_kubectl "$@"
     ;;
