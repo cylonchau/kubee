@@ -85,6 +85,8 @@ alias kda='k get deploy -A'     # Get deployments (all namespaces)
 alias kdd='k describe deploy'   # Describe deployment
 alias ked='k edit deploy'       # Edit deployment
 alias kdeld='k delete deploy'   # Delete deployment
+alias kdy='k get deploy -o yaml' # Get deployments output yaml
+alias krestartd='k rollout restart deploy' # Restart deployment
 
 # Statefullset-related aliases
 alias ksts='k get sts'        # Get deployments
@@ -92,6 +94,8 @@ alias kstsa='k get sts -A'    # Get deployments (all namespaces)
 alias kstsd='k describe sts'  # Describe deployment
 alias kests='k edit sts'      # Edit deployment
 alias kdelsts='k delete sts'  # Delete deployment
+alias kstsy='k get sts -o yaml' # Get statefulsets output yaml
+alias krestartsts='k rollout restart sts' # Restart statefulset
 
 # Service-related aliases
 alias ksv='k get svc'         # Get services
@@ -100,6 +104,7 @@ alias kdsv='k describe svc'   # Describe service
 alias kesv='k edit svc'       # Edit service
 alias kdelsv='k delete svc'   # Delete service
 alias kpf='k port-forward'    # Port-forward service
+alias ksvy='k get svc -o yaml' # Get services output yaml
 
 # Ingress-related aliases
 alias king='k get ingress'    # Get ingresses
@@ -139,6 +144,7 @@ alias kds='k get daemonset'   # Get daemonsets
 alias kdsa='k get daemonset -A' # Get daemonsets (all namespaces)
 alias kdds='k describe daemonset' # Describe daemonset
 alias kdelds='k delete daemonset' # Delete daemonset
+alias krestartds='k rollout restart daemonset' # Restart daemonset
 
 # StatefulSet-related aliases
 alias kss='k get statefulset' # Get statefulsets
