@@ -1,6 +1,5 @@
 # kubee — Simple Multi-Cluster Kubernetes Cli Tool
 
----
 ## Overview
 
 **kubee** is a lightweight command-line tool written in **bash shell** for managing multiple Kubernetes clusters.  
@@ -23,8 +22,6 @@ It uses **AES-256-CBC encryption** to securely store kubeconfig files, combined 
 
 - 📁 **Command Shortcuts**
     - Default aliases can be defined in `/etc/profile.d/kubee-aliases.sh` for simplified usage.
-
----
 
 ## How It Works
 
