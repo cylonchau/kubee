@@ -22,12 +22,19 @@ shc -f %{SOURCE0} -o kubee -r
 install -D -m 755 kubee %{buildroot}/usr/sbin/kubee
 # Install aliases
 install -D -m 644 %{SOURCE1} %{buildroot}/etc/profile.d/kubee-aliases.sh
-# Install config file
-echo -e 'KUBE_PASS="vz8g97YaKgf8=ui_t^En"\nUSE_PASSWORD=false' > %{buildroot}/etc/.kubee
+# Ensure the directory exists for the ghost config file
+mkdir -p %{buildroot}/etc
+touch %{buildroot}/etc/.kubee
 
 %post
 # Ensure aliases are loaded in new sessions
 echo "source /etc/profile.d/kubee-aliases.sh" > /dev/null
+
+# Initialize config file if it doesn't exist
+if [ ! -f /etc/.kubee ]; then
+  echo -e 'KUBE_PASS="vz8g97YaKgf8=ui_t^En"\nUSE_PASSWORD=false' > /etc/.kubee
+  chmod 600 /etc/.kubee
+fi
 
 %preun
 # No action needed before uninstall
@@ -43,7 +50,7 @@ fi
 %files
 %attr(0755,root,root) /usr/sbin/kubee
 %attr(0755,root,root) /etc/profile.d/kubee-aliases.sh
-%attr(0600,root,root) /etc/.kubee
+%ghost %attr(0600,root,root) /etc/.kubee
 
 %changelog
 * Thu Jul 24 2025 cylon <cylonchau@outlook.com> - 1.0.0-2

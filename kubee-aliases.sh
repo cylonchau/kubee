@@ -1,4 +1,21 @@
+k-help() {
+  echo -e "\nAvailable Aliases:"
+  echo "------------------"
+  local source_file="${BASH_SOURCE[0]:-/etc/profile.d/kubee-aliases.sh}"
+  if [[ -f "$source_file" ]]; then
+    grep "^alias " "$source_file" | sed -E "s/alias ([^=]+)='([^']*)'[[:space:]]*#?[[:space:]]*(.*)/\1\t\2\t# \3/" | column -t -s $'\t'
+  else
+    echo "Error: Alias source file not found at $source_file"
+  fi
+}
+
 k() {
+  # Handle help subcommand to show alias help
+  if [[ "${1:-}" == "help" ]]; then
+    k-help
+    return 0
+  fi
+
   local args=()
   local namespace=""
   local encrypt_file=""
@@ -70,6 +87,7 @@ alias kpo='k get pod -owide'  # Get pods
 alias kpa='k get pod -A'      # Get pods (all namespaces)
 alias kpy='k get pod -oyaml'  # Get pods output yaml
 alias kdp='k describe pod'    # Describe pod
+alias kpy='k get pod -oyaml'  # Get pods output yaml
 alias kep='k edit pod'        # Edit pod
 alias kdelp='k delete pod'    # Delete pod
 alias kexec='k exec -it'      # Exec into pod
@@ -140,17 +158,17 @@ alias kdpvc='k describe pvc'  # Describe persistent volume claim
 alias kdelpvc='k delete pvc'  # Delete persistent volume claim
 
 # DaemonSet-related aliases
-alias kds='k get daemonset'   # Get daemonsets
-alias kdsa='k get daemonset -A' # Get daemonsets (all namespaces)
-alias kdds='k describe daemonset' # Describe daemonset
-alias kdelds='k delete daemonset' # Delete daemonset
+alias kds='k get daemonset'         # Get daemonsets
+alias kdsa='k get daemonset -A'     # Get daemonsets (all namespaces)
+alias kdds='k describe daemonset'   # Describe daemonset
+alias kdelds='k delete daemonset'   # Delete daemonset
 alias krestartds='k rollout restart daemonset' # Restart daemonset
 
 # StatefulSet-related aliases
-alias kss='k get statefulset' # Get statefulsets
-alias kssa='k get statefulset -A' # Get statefulsets (all namespaces)
-alias kdss='k describe statefulset' # Describe statefulset
-alias kdelss='k delete statefulset' # Delete statefulset
+alias kss='k get statefulset'       # Get statefulsets
+alias kssa='k get statefulset -A'   # Get statefulsets (all namespaces)
+alias kdss='k describe statefulset'  # Describe statefulset
+alias kdelss='k delete statefulset'  # Delete statefulset
 
 # Job-related aliases
 alias kj='k get job'          # Get jobs

@@ -223,6 +223,13 @@ case "${1:-}" in
   -h|--help)
     print_usage
     ;;
+  help)
+    print_usage
+    if [[ -f /etc/profile.d/kubee-aliases.sh ]]; then
+      (source /etc/profile.d/kubee-aliases.sh && k-help)
+    fi
+    exit 0
+    ;;
   -c|--current)
     show_current_cluster
     ;;
