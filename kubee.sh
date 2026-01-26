@@ -20,7 +20,21 @@ load_config() {
   fi
   source "$CONFIG_FILE"
   CLUSTER="${CLUSTER:-$DEFAULT_CLUSTER}"
-  ENCRYPTED_FILE="${KUBECONFIG:-$KUBEDIR/config-${CLUSTER}$ENCRYPTED_SUFFIX}"
+  
+  # Determine encrypted file path with fallback
+  if [[ -n "${KUBECONFIG:-}" ]]; then
+    ENCRYPTED_FILE="$KUBECONFIG"
+  else
+    ENCRYPTED_FILE="$KUBEDIR/config-${CLUSTER}$ENCRYPTED_SUFFIX"
+    # Fallback for default cluster: if config-default.enc doesn't exist, try config.enc
+    if [[ "$CLUSTER" == "$DEFAULT_CLUSTER" && ! -f "$ENCRYPTED_FILE" ]]; then
+      local legacy_file="$KUBEDIR/config$ENCRYPTED_SUFFIX"
+      if [[ -f "$legacy_file" ]]; then
+        ENCRYPTED_FILE="$legacy_file"
+      fi
+    fi
+  fi
+  
   TMP_KUBECONFIG=$(mktemp)
 }
 
