@@ -16,7 +16,8 @@ jobs:
     strategy:
       matrix:
         os:
-          - { name: rockylinux, version: "9", dist: el9 }
+          - { name: "rockylinux/rockylinux", version: "10", dist: el10 }
+          - { name: "rockylinux/rockylinux", version: "9", dist: el9 }
           - { name: almalinux, version: "8", dist: el7 } # 用 alma8 编译 el7
     container:
       image: ${{ matrix.os.name }}:${{ matrix.os.version }}
@@ -40,6 +41,15 @@ jobs:
             # AlmaLinux 8 (编译 el7)
             dnf install -y epel-release
             dnf install -y git rpm-build rpmdevtools make gcc shc
+          elif [ "${{ matrix.os.version }}" == "10" ]; then
+            # Rocky Linux 10 / EL10
+            dnf install -y epel-release
+            dnf install -y git rpm-build rpmdevtools make gcc
+            dnf install -y shc || {
+              # Fallback if shc is not in EPEL 10 yet
+              curl -L -O http://download.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/s/shc-4.0.3-11.el9.x86_64.rpm
+              rpm -ivh shc-4.0.3-11.el9.x86_64.rpm --nodeps
+            }
           else
             # Rocky Linux 9
             dnf install -y git rpm-build rpmdevtools make gcc

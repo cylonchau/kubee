@@ -3,7 +3,7 @@ k-help() {
   echo "------------------"
   local source_file="${BASH_SOURCE[0]:-/etc/profile.d/kubee-aliases.sh}"
   if [[ -f "$source_file" ]]; then
-    grep "^alias " "$source_file" | sed -E "s/alias ([^=]+)='([^']*)'[[:space:]]*#?[[:space:]]*(.*)/\1\t\2\t# \3/" | column -t -s $'\t'
+    grep "^alias " "$source_file" | sed -E "s/alias ([^=]+)='([^']*)'[[:space:]]*#?[[:space:]]*(.*)/\1 	 \2 	 \3/" | column -t -s '	'
   else
     echo "Error: Alias source file not found at $source_file"
   fi
@@ -104,7 +104,7 @@ alias kdd='k describe deploy'   # Describe deployment
 alias ked='k edit deploy'       # Edit deployment
 alias kdeld='k delete deploy'   # Delete deployment
 alias kdy='k get deploy -o yaml' # Get deployments output yaml
-alias krestartd='k rollout restart deploy' # Restart deployment
+alias krd='k rollout restart deploy' # Restart deployment
 
 # Statefullset-related aliases
 alias ksts='k get sts'        # Get deployments
@@ -113,7 +113,7 @@ alias kstsd='k describe sts'  # Describe deployment
 alias kests='k edit sts'      # Edit deployment
 alias kdelsts='k delete sts'  # Delete deployment
 alias kstsy='k get sts -o yaml' # Get statefulsets output yaml
-alias krestartsts='k rollout restart sts' # Restart statefulset
+alias krsts='k rollout restart sts' # Restart statefulset
 
 # Service-related aliases
 alias ksv='k get svc'         # Get services
@@ -165,8 +165,8 @@ alias kdelds='k delete daemonset'   # Delete daemonset
 alias krestartds='k rollout restart daemonset' # Restart daemonset
 
 # StatefulSet-related aliases
-alias kss='k get statefulset'       # Get statefulsets
-alias kssa='k get statefulset -A'   # Get statefulsets (all namespaces)
+alias kss='k get statefulset'        # Get statefulsets
+alias kssa='k get statefulset -A'    # Get statefulsets (all namespaces)
 alias kdss='k describe statefulset'  # Describe statefulset
 alias kdelss='k delete statefulset'  # Delete statefulset
 
@@ -208,8 +208,8 @@ alias kdcrd='k describe crd'  # Describe custom resource definition
 alias kdelcrd='k delete crd'  # Delete custom resource definition
 
 # Apply and delete (generic)
-alias ka='k apply -f'         # Apply from file
-alias kdelf='k delete -f'     # Delete from file
+alias kaf='k apply -f'         # Apply from file
+alias kdelf='k delete -f'      # Delete from file
 
 # Top (metrics, namespace-specific)
 alias kt='k top'              # Top resources
