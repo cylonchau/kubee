@@ -6,7 +6,7 @@
 [![CentOS](https://img.shields.io/badge/CentOS-7-262524?style=flat-square&logo=centos&logoColor=white)](https://www.centos.org/)
 [![License](https://img.shields.io/github/license/cylonchau/kubee?style=flat-square&color=orange)](https://github.com/cylonchau/kubee/blob/main/LICENSE)
 
-**kubee** is a lightweight command-line toolkit written in **Bash** for managing multiple Kubernetes clusters with security and ease.
+**kubee** is a lightweight command-line toolkit written in Bash shell for managing multiple Kubernetes clusters with security and ease.
 
 ## Overview
 

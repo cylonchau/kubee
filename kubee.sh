@@ -6,11 +6,26 @@ KUBEDIR=~/.kube
 DEFAULT_CLUSTER="default"
 ENCRYPTED_SUFFIX=".enc"
 
-# Function to clean up temporary file
+# Track temporary files for cleanup
+declare -a TMP_FILES=()
+
+# Function to clean up temporary files
 cleanup() {
-  rm -f "$TMP_KUBECONFIG" 2>/dev/null
+  for f in "${TMP_FILES[@]}"; do
+    rm -f "$f" 2>/dev/null
+  done
 }
 trap cleanup EXIT
+
+# Helper to create and register temp files
+create_tmp_file() {
+  local tmp=$(mktemp) || {
+    echo "Error: Failed to create temporary file. Is the disk full?"
+    exit 1
+  }
+  TMP_FILES+=("$tmp")
+  echo "$tmp"
+}
 
 # Function to load config
 load_config() {
@@ -35,7 +50,7 @@ load_config() {
     fi
   fi
   
-  TMP_KUBECONFIG=$(mktemp)
+  TMP_KUBECONFIG=$(create_tmp_file)
 }
 
 # Function to set a variable in config file
@@ -99,10 +114,15 @@ show_current_cluster() {
     exit 0
   fi
   get_password
-  openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" 2>/dev/null || {
+  local openssl_err=$(create_tmp_file)
+  if openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
+    rm -f "$openssl_err"
+  else
     echo "Error: Failed to decrypt kubeconfig. Check password or file integrity."
+    cat "$openssl_err"
+    rm -f "$openssl_err"
     exit 1
-  }
+  fi
   local namespace=$(KUBECONFIG="$TMP_KUBECONFIG" kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo "Not set")
   echo "Current cluster: $CLUSTER"
   echo "Kubeconfig file: $ENCRYPTED_FILE"
@@ -121,7 +141,7 @@ encrypt_kubeconfig() {
   local target_cluster="${2:-$CLUSTER}"
   local target_enc="$KUBEDIR/config-${target_cluster}$ENCRYPTED_SUFFIX"
   get_password
-  openssl enc -aes-256-cbc -salt -in "$input" -out "$target_enc" -pass pass:"$KUBE_PASS" 2>/dev/null
+  openssl enc -aes-256-cbc -salt -in "$input" -out "$target_enc" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>/dev/null
   echo "Encrypted kubeconfig saved to $target_enc"
   if [[ -n "$2" ]]; then
     set_config_var KUBECONFIG "$target_enc"
@@ -147,7 +167,15 @@ decrypt_kubeconfig() {
     exit 1
   fi
   get_password
-  openssl enc -aes-256-cbc -d -salt -in "$target_enc" -out "$output" -pass pass:"$KUBE_PASS" 2>/dev/null
+  local openssl_err=$(create_tmp_file)
+  if openssl enc -aes-256-cbc -d -salt -in "$target_enc" -out "$output" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
+    rm -f "$openssl_err"
+  else
+    echo "Error: Failed to decrypt kubeconfig. Check password or file integrity."
+    cat "$openssl_err"
+    rm -f "$openssl_err"
+    exit 1
+  fi
   echo "Decrypted kubeconfig saved to $output"
   exit 0
 }
@@ -164,9 +192,9 @@ set_namespace() {
     exit 1
   fi
   get_password
-  openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" 2>/dev/null
+  openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>/dev/null
   KUBECONFIG="$TMP_KUBECONFIG" kubectl config set-context --current --namespace="$1"
-  openssl enc -aes-256-cbc -salt -in "$TMP_KUBECONFIG" -out "$ENCRYPTED_FILE" -pass pass:"$KUBE_PASS" 2>/dev/null
+  openssl enc -aes-256-cbc -salt -in "$TMP_KUBECONFIG" -out "$ENCRYPTED_FILE" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>/dev/null
   echo "Default namespace set to $1 for cluster $CLUSTER"
   exit 0
 }
@@ -208,10 +236,15 @@ run_kubectl() {
     exit 1
   fi
   get_password
-  openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" 2>/dev/null || {
+  local openssl_err=$(create_tmp_file)
+  if openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
+    rm -f "$openssl_err"
+  else
     echo "Error: Failed to decrypt kubeconfig. Check password or file integrity."
+    cat "$openssl_err"
+    rm -f "$openssl_err"
     exit 1
-  }
+  fi
   KUBECONFIG="$TMP_KUBECONFIG" kubectl "$@"
 }
 
@@ -222,10 +255,15 @@ run_helm() {
     exit 1
   fi
   get_password
-  openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" 2>/dev/null || {
+  local openssl_err=$(create_tmp_file)
+  if openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
+    rm -f "$openssl_err"
+  else
     echo "Error: Failed to decrypt kubeconfig. Check password or file integrity."
+    cat "$openssl_err"
+    rm -f "$openssl_err"
     exit 1
-  }
+  fi
   KUBECONFIG="$TMP_KUBECONFIG" helm "$@"
 }
 
