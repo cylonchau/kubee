@@ -19,12 +19,14 @@ trap cleanup EXIT
 
 # Helper to create and register temp files
 create_tmp_file() {
-  local tmp=$(mktemp) || {
+  local var_name="$1"
+  local tmp
+  tmp=$(mktemp) || {
     echo "Error: Failed to create temporary file. Is the disk full?"
     exit 1
   }
   TMP_FILES+=("$tmp")
-  echo "$tmp"
+  printf -v "$var_name" '%s' "$tmp"
 }
 
 # Function to load config
@@ -50,7 +52,7 @@ load_config() {
     fi
   fi
   
-  TMP_KUBECONFIG=$(create_tmp_file)
+  create_tmp_file TMP_KUBECONFIG
 }
 
 # Function to set a variable in config file
@@ -114,7 +116,8 @@ show_current_cluster() {
     exit 0
   fi
   get_password
-  local openssl_err=$(create_tmp_file)
+  local openssl_err
+  create_tmp_file openssl_err
   if openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
     rm -f "$openssl_err"
   else
@@ -167,7 +170,8 @@ decrypt_kubeconfig() {
     exit 1
   fi
   get_password
-  local openssl_err=$(create_tmp_file)
+  local openssl_err
+  create_tmp_file openssl_err
   if openssl enc -aes-256-cbc -d -salt -in "$target_enc" -out "$output" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
     rm -f "$openssl_err"
   else
@@ -236,7 +240,8 @@ run_kubectl() {
     exit 1
   fi
   get_password
-  local openssl_err=$(create_tmp_file)
+  local openssl_err
+  create_tmp_file openssl_err
   if openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
     rm -f "$openssl_err"
   else
@@ -255,7 +260,8 @@ run_helm() {
     exit 1
   fi
   get_password
-  local openssl_err=$(create_tmp_file)
+  local openssl_err
+  create_tmp_file openssl_err
   if openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>"$openssl_err"; then
     rm -f "$openssl_err"
   else
