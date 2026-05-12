@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+CONFIG_FILE=/etc/.kubee
+
+if [ ! -f "$CONFIG_FILE" ]; then
+  cat > "$CONFIG_FILE" <<'EOF'
+KUBE_PASS="vz8g97YaKgf8=ui_t^En"
+USE_PASSWORD=false
+EOF
+  chmod 600 "$CONFIG_FILE"
+fi
+
+#DEBHELPER#

@@ -1,0 +1,22 @@
+Source: kubee
+Section: utils
+Priority: optional
+Maintainer: cylon <cylonchau@outlook.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ gcc,
+ shc
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: kubee
+Architecture: any
+Depends:
+ bash,
+ openssl,
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: Lightweight Kubernetes kubeconfig toolkit
+ Kubee is a lightweight command-line toolkit for managing Kubernetes
+ kubeconfig files securely with encryption and convenient aliases for
+ kubectl and helm workflows.

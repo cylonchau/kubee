@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	shc -f kubee.sh -o kubee -r
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f kubee kubee.sh.x.c

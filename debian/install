@@ -1,0 +1,2 @@
+kubee usr/sbin
+kubee-aliases.sh etc/profile.d

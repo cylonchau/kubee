@@ -10,6 +10,90 @@ permissions:
   contents: write
 
 jobs:
+  build-deb:
+    name: Build DEB packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - { name: debian, version: "12" }
+          - { name: ubuntu, version: "22.04" }
+          - { name: ubuntu, version: "24.04" }
+    container:
+      image: ${{ matrix.os.name }}:${{ matrix.os.version }}
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update
+          if [ "${{ matrix.os.name }}" = "ubuntu" ]; then
+            apt-get install -y software-properties-common
+            add-apt-repository -y universe
+            apt-get update
+          fi
+          apt-get install -y \
+            autoconf \
+            automake \
+            bash \
+            build-essential \
+            ca-certificates \
+            debhelper \
+            devscripts \
+            dpkg-dev \
+            git
+          apt-get install -y shc || {
+            git clone --depth 1 https://github.com/neurobin/shc.git /tmp/shc
+            cd /tmp/shc
+            ./configure --prefix=/usr
+            make -j"$(nproc)"
+            make install
+          }
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag or use default
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "Building version $VERSION from tag"
+          else
+            VERSION="0.0.0"
+            echo "Building default version $VERSION"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update Debian changelog
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          dch --create \
+            --package kubee \
+            --newversion "${{ steps.version.outputs.version }}-1" \
+            --distribution unstable \
+            --empty \
+            "Release ${{ steps.version.outputs.version }}"
+
+      - name: Build DEB
+        run: dpkg-buildpackage -us -uc -b -d
+
+      - name: Move DEB packages
+        run: |
+          mkdir -p dist/deb
+          ARCH=$(dpkg --print-architecture)
+          for deb in ../*.deb; do
+            if [ -f "$deb" ]; then
+              mv "$deb" "dist/deb/kubee_${{ steps.version.outputs.version }}_${ARCH}-${{ matrix.os.name }}${{ matrix.os.version }}.deb"
+            fi
+          done
+
+      - name: Upload DEB packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.os.name }}-${{ matrix.os.version }}
+          path: dist/deb/*.deb
+          retention-days: 1
+
   build-rpm:
     name: Build RPM packages
     runs-on: ubuntu-latest
@@ -100,7 +184,7 @@ jobs:
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-rpm]
+    needs: [build-deb, build-rpm]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -114,7 +198,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/**/*.rpm
+          files: |
+            dist/**/*.deb
+            dist/**/*.rpm
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
