@@ -83,7 +83,8 @@ h() {
 
 # Pod-related aliases
 alias kp='k get pod'          # Get pods
-alias kpo='k get pod -owide'  # Get pods
+alias kpo='k get pod -owide'  # Get pods more infomations
+alias kpw='k get pod -w'      # Get pods watch
 alias kpa='k get pod -A'      # Get pods (all namespaces)
 alias kpy='k get pod -oyaml'  # Get pods output yaml
 alias kdp='k describe pod'    # Describe pod
