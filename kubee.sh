@@ -2,7 +2,9 @@
 set -euo pipefail
 
 CONFIG_FILE=/etc/.kubee
-KUBEDIR=~/.kube
+KUBEDIR="${KUBEE_KUBEDIR:-$HOME/.kube}"
+KUBECTL_BIN="${KUBEE_KUBECTL_BIN:-kubectl}"
+HELM_BIN="${KUBEE_HELM_BIN:-helm}"
 DEFAULT_CLUSTER="default"
 ENCRYPTED_SUFFIX=".enc"
 
@@ -27,6 +29,44 @@ create_tmp_file() {
   }
   TMP_FILES+=("$tmp")
   printf -v "$var_name" '%s' "$tmp"
+}
+
+ensure_kubedir() {
+  mkdir -p "$KUBEDIR"
+}
+
+is_wsl() {
+  [[ -n "${WSL_DISTRO_NAME:-}" ]] || { [[ -r /proc/version ]] && grep -qi microsoft /proc/version; }
+}
+
+command_needs_windows_path() {
+  local cmd_path
+  cmd_path="$(command -v "$1" 2>/dev/null || true)"
+  [[ "${cmd_path,,}" == *.exe ]]
+}
+
+resolve_tool_command() {
+  local command_name="$1"
+  if command -v "$command_name" >/dev/null 2>&1; then
+    printf '%s\n' "$command_name"
+  elif is_wsl && command -v "$command_name.exe" >/dev/null 2>&1; then
+    printf '%s\n' "$command_name.exe"
+  else
+    printf '%s\n' "$command_name"
+  fi
+}
+
+kubeconfig_for_command() {
+  local command_name="$1"
+  if is_wsl && command_needs_windows_path "$command_name"; then
+    if ! command -v wslpath >/dev/null 2>&1; then
+      echo "Error: $command_name appears to be a Windows executable, but wslpath is not available" >&2
+      exit 1
+    fi
+    wslpath -w "$TMP_KUBECONFIG"
+  else
+    printf '%s\n' "$TMP_KUBECONFIG"
+  fi
 }
 
 # Function to load config
@@ -126,7 +166,11 @@ show_current_cluster() {
     rm -f "$openssl_err"
     exit 1
   fi
-  local namespace=$(KUBECONFIG="$TMP_KUBECONFIG" kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo "Not set")
+  local kubectl_cmd
+  kubectl_cmd="$(resolve_tool_command "$KUBECTL_BIN")"
+  local command_kubeconfig
+  command_kubeconfig="$(kubeconfig_for_command "$kubectl_cmd")"
+  local namespace=$(KUBECONFIG="$command_kubeconfig" "$kubectl_cmd" config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null || echo "Not set")
   echo "Current cluster: $CLUSTER"
   echo "Kubeconfig file: $ENCRYPTED_FILE"
   echo "Default namespace: ${namespace:-Not set}"
@@ -144,6 +188,7 @@ encrypt_kubeconfig() {
   local target_cluster="${2:-$CLUSTER}"
   local target_enc="$KUBEDIR/config-${target_cluster}$ENCRYPTED_SUFFIX"
   get_password
+  ensure_kubedir
   openssl enc -aes-256-cbc -salt -in "$input" -out "$target_enc" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>/dev/null
   echo "Encrypted kubeconfig saved to $target_enc"
   if [[ -n "$2" ]]; then
@@ -197,7 +242,11 @@ set_namespace() {
   fi
   get_password
   openssl enc -aes-256-cbc -d -salt -in "$ENCRYPTED_FILE" -out "$TMP_KUBECONFIG" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>/dev/null
-  KUBECONFIG="$TMP_KUBECONFIG" kubectl config set-context --current --namespace="$1"
+  local kubectl_cmd
+  kubectl_cmd="$(resolve_tool_command "$KUBECTL_BIN")"
+  local command_kubeconfig
+  command_kubeconfig="$(kubeconfig_for_command "$kubectl_cmd")"
+  KUBECONFIG="$command_kubeconfig" "$kubectl_cmd" config set-context --current --namespace="$1"
   openssl enc -aes-256-cbc -salt -in "$TMP_KUBECONFIG" -out "$ENCRYPTED_FILE" -pass pass:"$KUBE_PASS" ${OPENSSL_OPTS:-} 2>/dev/null
   echo "Default namespace set to $1 for cluster $CLUSTER"
   exit 0
@@ -250,7 +299,11 @@ run_kubectl() {
     rm -f "$openssl_err"
     exit 1
   fi
-  KUBECONFIG="$TMP_KUBECONFIG" kubectl "$@"
+  local kubectl_cmd
+  kubectl_cmd="$(resolve_tool_command "$KUBECTL_BIN")"
+  local command_kubeconfig
+  command_kubeconfig="$(kubeconfig_for_command "$kubectl_cmd")"
+  KUBECONFIG="$command_kubeconfig" "$kubectl_cmd" "$@"
 }
 
 # Function to run helm command
@@ -270,7 +323,11 @@ run_helm() {
     rm -f "$openssl_err"
     exit 1
   fi
-  KUBECONFIG="$TMP_KUBECONFIG" helm "$@"
+  local helm_cmd
+  helm_cmd="$(resolve_tool_command "$HELM_BIN")"
+  local command_kubeconfig
+  command_kubeconfig="$(kubeconfig_for_command "$helm_cmd")"
+  KUBECONFIG="$command_kubeconfig" "$helm_cmd" "$@"
 }
 
 # Load config
