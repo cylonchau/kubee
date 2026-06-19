@@ -3,7 +3,14 @@ k-help() {
   echo "------------------"
   local source_file="${BASH_SOURCE[0]:-/etc/profile.d/kubee-aliases.sh}"
   if [[ -f "$source_file" ]]; then
-    grep "^alias " "$source_file" | sed -E "s/alias ([^=]+)='([^']*)'[[:space:]]*#?[[:space:]]*(.*)/\1 	 \2 	 \3/" | column -t -s '	'
+    local alias_list
+    alias_list=$(grep "^alias " "$source_file" | sed -E "s/alias ([^=]+)='([^']*)'[[:space:]]*#?[[:space:]]*(.*)/\1 	 \2 	 \3/")
+
+    if command -v column >/dev/null 2>&1; then
+      printf '%s\n' "$alias_list" | column -t -s '	'
+    else
+      printf '%s\n' "$alias_list" | sed $'s/\t/  /g'
+    fi
   else
     echo "Error: Alias source file not found at $source_file"
   fi
