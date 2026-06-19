@@ -9,7 +9,23 @@ k-help() {
     if command -v column >/dev/null 2>&1; then
       printf '%s\n' "$alias_list" | column -t -s '	'
     else
-      printf '%s\n' "$alias_list" | sed $'s/\t/  /g'
+      printf '%s\n' "$alias_list" | awk -F '\t' '
+        {
+          for (field = 1; field <= 3; field++) {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $field)
+          }
+          aliases[NR] = $1
+          commands[NR] = $2
+          descriptions[NR] = $3
+          if (length($1) > alias_width) alias_width = length($1)
+          if (length($2) > command_width) command_width = length($2)
+        }
+        END {
+          for (line = 1; line <= NR; line++) {
+            printf "%-*s  %-*s  %s\n", alias_width, aliases[line], command_width, commands[line], descriptions[line]
+          }
+        }
+      '
     fi
   else
     echo "Error: Alias source file not found at $source_file"
