@@ -80,6 +80,13 @@ h() {
 
   /usr/sbin/kubee helm "${args[@]}"
 }
+# Golbel aliases
+alias kdel='k delete'        # Delete some resoures
+alias kg='k get'             # Get some resources
+alias kedit='k edit'         # Edit some resources
+alias kcor='k cordon'        # cordon
+alias kucor='k cordon'       # uncordon
+
 
 # Pod-related aliases
 alias kp='k get pod'          # Get pods
