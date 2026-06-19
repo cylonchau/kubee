@@ -190,11 +190,40 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+          PREVIOUS_TAG=$(git tag --sort=-version:refname --merged "${CURRENT_TAG}" \
+            | grep -Fvx "${CURRENT_TAG}" \
+            | head -n 1 || true)
+
+          {
+            echo "## Changes"
+            echo
+            if [ -n "${PREVIOUS_TAG}" ]; then
+              git log \
+                --pretty=format:"- %s ([%h](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/%H))" \
+                "${PREVIOUS_TAG}..${CURRENT_TAG}"
+              echo
+              echo
+              echo "## Full Changelog"
+              echo
+              echo "[${PREVIOUS_TAG}...${CURRENT_TAG}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${CURRENT_TAG})"
+            else
+              git log \
+                --pretty=format:"- %s ([%h](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/%H))" \
+                "${CURRENT_TAG}"
+            fi
+          } > release-notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -202,6 +231,6 @@ jobs:
           files: |
             dist/**/*.deb
             dist/**/*.rpm
-          generate_release_notes: true
+          body_path: release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
